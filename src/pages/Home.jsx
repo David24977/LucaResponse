@@ -17,9 +17,7 @@ function Home() {
     return saved ? JSON.parse(saved) : false;
   });
 
-  const [isMobile, setIsMobile] = useState(
-    window.matchMedia("(max-width: 1024px)").matches,
-  );
+  const isMobileNow = () => window.innerWidth <= 1024;
 
   const messagesEndRef = useRef(null);
 
@@ -41,17 +39,6 @@ function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 1024px)");
-
-    const handleChange = (e) => setIsMobile(e.matches);
-
-    media.addEventListener("change", handleChange);
-
-    return () => {
-      media.removeEventListener("change", handleChange);
-    };
-  }, []);
 
   const handleQuery = async (query) => {
     const cleanQuery = query.trim();
@@ -162,7 +149,7 @@ function Home() {
                 }`}
               >
                 {msg.role === "ai" && isLastMessage ? (
-                  isMobile ? (
+                  isMobileNow() ? (
                     <ProgressiveText text={msg.text} />
                   ) : (
                     <TypingText text={msg.text} />

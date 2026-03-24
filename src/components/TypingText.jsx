@@ -1,22 +1,28 @@
 import { useEffect, useState } from "react";
 
 function TypingText({ text }) {
-  const [index, setIndex] = useState(0);
+  const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
-    if (index >= text.length) return;
+    let i = 0;
+    setDisplayed("");
 
-    const timeout = setTimeout(() => {
-      setIndex((prev) => prev + 1);
+    const interval = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+
+      if (i >= text.length) {
+        clearInterval(interval);
+      }
     }, 15);
 
-    return () => clearTimeout(timeout);
-  }, [index, text.length]);
+    return () => clearInterval(interval);
+  }, [text]);
 
   return (
     <p className="whitespace-pre-line">
-      {text.slice(0, index)}
-      {index < text.length && (
+      {displayed}
+      {displayed.length < text.length && (
         <span className="animate-pulse">|</span>
       )}
     </p>

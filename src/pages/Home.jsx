@@ -4,30 +4,26 @@ import TypingText from "../components/TypingText";
 import { queryAI } from "../api/aiApi";
 
 function Home() {
-
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem("luca_messages");
     return saved ? JSON.parse(saved) : [];
   });
 
   const [loading, setLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("dark_mode");
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  const [isMobile, setIsMobile] = useState(
+    window.matchMedia("(max-width: 1024px)").matches,
+  );
 
   const messagesEndRef = useRef(null);
 
-  // dark mode persistente
- useEffect(() => {
-  localStorage.setItem("dark_mode", darkMode);
-
-  if (darkMode) {
-    document.documentElement.classList.add("dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-  }
-}, [darkMode]);
-
   useEffect(() => {
-    localStorage.setItem("dark_mode", darkMode);
+    localStorage.setItem("dark_mode", JSON.stringify(darkMode));
 
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -36,37 +32,51 @@ function Home() {
     }
   }, [darkMode]);
 
-  // guardar mensajes
   useEffect(() => {
     localStorage.setItem("luca_messages", JSON.stringify(messages));
   }, [messages]);
 
-  // scroll automático
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, loading]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1024px)");
+
+    const handleChange = (e) => setIsMobile(e.matches);
+
+    media.addEventListener("change", handleChange);
+
+    return () => {
+      media.removeEventListener("change", handleChange);
+    };
+  }, []);
 
   const handleQuery = async (query) => {
+    const cleanQuery = query.trim();
+    if (!cleanQuery || loading) return;
 
-    setMessages(prev => [...prev, { role: "user", text: query }]);
+    setMessages((prev) => [...prev, { role: "user", text: cleanQuery }]);
     setLoading(true);
 
     try {
-      const result = await queryAI(query);
+      const result = await queryAI(cleanQuery);
 
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
-        { role: "ai", text: result.response }
+        { role: "ai", text: result.response || "No response received." },
       ]);
-
     } catch {
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
-        { role: "ai", text: "Error contacting AI service." }
+        {
+          role: "ai",
+          text: "Error contacting AI service. Please try again.",
+        },
       ]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const clearChat = () => {
@@ -74,93 +84,126 @@ function Home() {
     localStorage.removeItem("luca_messages");
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (error) {
+      console.error("Clipboard copy failed:", error);
+    }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors">
+      <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 md:px-6">
+          <div className="flex items-center gap-3">
+            <img
+              src="/favicon.ico?v=2"
+              alt="LucaResponse logo"
+              className="h-8 w-8 object-contain"
+            />
+            <div>
+              <h1 className="text-lg font-bold text-gray-800 dark:text-white md:text-xl">
+                LucaResponse
+              </h1>
+              <p className="hidden text-sm text-gray-500 dark:text-gray-400 sm:block">
+                AI-powered assistant built with Spring Boot and Groq
+              </p>
+            </div>
+          </div>
 
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-3 bg-white dark:bg-gray-800 shadow">
-
-        <div className="flex items-center gap-3">
-          <img src="/favicon.ico?v=2" className="w-8 h-8 object-contain" />
-          <h1 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
-            LucaResponse
-          </h1>
-        </div>
-
-        <div className="flex gap-2 md:gap-3">
-
-          {messages.length > 0 && (
-            <button
-              onClick={clearChat}
-              className="px-2 md:px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm"
-            >
-              Clear
-            </button>
-          )}
-
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="px-2 md:px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-lg transition"
-          >
-            {darkMode ? "☀️" : "🌙"}
-          </button>
-
-        </div>
-      </div>
-
-      {/* CHAT */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`max-w-[90%] md:max-w-xl p-4 rounded-lg animate-fadeIn ${
-              msg.role === "user"
-                ? "bg-blue-500 text-white ml-auto"
-                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow"
-            }`}
-          >
-
-            {msg.role === "ai" && index === messages.length - 1 ? (
-              <TypingText text={msg.text} />
-            ) : (
-              <p className="whitespace-pre-line">{msg.text}</p>
-            )}
-
-            {msg.role === "ai" && (
+          <div className="flex items-center gap-2 md:gap-3">
+            {messages.length > 0 && (
               <button
-                onClick={() => copyToClipboard(msg.text)}
-                className="text-xs mt-2 text-gray-400 hover:text-gray-600"
+                onClick={clearChat}
+                className="rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-600"
               >
-                Copy
+                Clear
               </button>
             )}
 
+            <button
+              onClick={() => setDarkMode((prev) => !prev)}
+              className="rounded-lg bg-gray-200 px-3 py-2 text-sm transition hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+              aria-label="Toggle dark mode"
+              title="Toggle dark mode"
+            >
+              {darkMode ? "☀️" : "🌙"}
+            </button>
           </div>
-        ))}
+        </div>
+      </header>
 
-        {/* LOADING */}
-        {loading && (
-          <div className="flex items-center gap-2 text-gray-500 animate-pulse">
-            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></div>
-            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></div>
-          </div>
-        )}
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6 md:px-6">
+          {messages.length === 0 && !loading && (
+            <div className="mt-10 rounded-2xl bg-white p-6 text-center shadow dark:bg-gray-800">
+              <h2 className="mb-2 text-xl font-semibold text-gray-800 dark:text-white">
+                Ask anything
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400">
+                You can ask about programming, history, science, calculations,
+                or general knowledge.
+              </p>
+            </div>
+          )}
 
-        <div ref={messagesEndRef} />
+          {messages.map((msg, index) => {
+            const isLastMessage = index === messages.length - 1;
+            const shouldAnimate =
+              msg.role === "ai" && isLastMessage && !isMobile;
 
-      </div>
+            return (
+              <div
+                key={index}
+                className={`animate-fadeIn rounded-2xl p-4 shadow-sm ${
+                  msg.role === "user"
+                    ? "ml-auto w-fit max-w-[90%] bg-blue-500 text-white md:max-w-[70%]"
+                    : "mr-auto w-full max-w-3xl bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100"
+                }`}
+              >
+                {shouldAnimate ? (
+                  <TypingText text={msg.text} />
+                ) : (
+                  <p className="whitespace-pre-line leading-relaxed">
+                    {msg.text}
+                  </p>
+                )}
 
-      {/* INPUT */}
-      <div className="p-3 md:p-4 bg-white dark:bg-gray-800 border-t flex justify-center w-full">
-        <QueryInput onQuery={handleQuery} />
-      </div>
+                {msg.role === "ai" && (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={() => copyToClipboard(msg.text)}
+                      className="text-xs text-gray-400 transition hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
+          {loading && (
+            <div className="mr-auto w-full max-w-3xl rounded-2xl bg-white p-4 text-gray-500 shadow-sm dark:bg-gray-800 dark:text-gray-300">
+              <div className="mb-2 text-sm font-medium">Thinking...</div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce"></div>
+                <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0.15s]"></div>
+                <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0.3s]"></div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      </main>
+
+      <footer className="border-t bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="mx-auto w-full max-w-5xl px-4 py-3 md:px-6 md:py-4">
+          <QueryInput onQuery={handleQuery} disabled={loading} />
+        </div>
+      </footer>
     </div>
   );
 }

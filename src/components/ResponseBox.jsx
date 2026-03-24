@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import TypingText from "./TypingText";
 
-function ResponseBox({ response }) {
+function ResponseBox({ response, loading }) {
   const [isMobile, setIsMobile] = useState(
     window.matchMedia("(max-width: 1024px)").matches
   );
@@ -14,16 +14,24 @@ function ResponseBox({ response }) {
     return () => media.removeEventListener("change", listener);
   }, []);
 
-  if (!response) return null;
-
   return (
     <div className="w-full flex justify-center px-4">
-      <div className="mt-6 w-full max-w-[650px] bg-white p-6 rounded-lg shadow text-gray-800 leading-relaxed">
+      <div className="mt-6 w-full max-w-[650px] bg-white p-6 rounded-lg shadow text-gray-800 leading-relaxed min-h-[120px]">
 
-        {isMobile ? (
-          <p className="whitespace-pre-line">{response}</p>
-        ) : (
-          <TypingText text={response} />
+        {/* 🔹 Loader */}
+        {loading && (
+          <p className="text-gray-500 animate-pulse">
+            Thinking...
+          </p>
+        )}
+
+        {/* 🔹 Respuesta */}
+        {!loading && response && (
+          isMobile ? (
+            <p className="whitespace-pre-line">{response}</p>
+          ) : (
+            <TypingText text={response} />
+          )
         )}
 
       </div>

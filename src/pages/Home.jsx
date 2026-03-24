@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import QueryInput from "../components/QueryInput";
 import TypingText from "../components/TypingText";
+import ProgressiveText from "../components/ProgressiveText";
 import { queryAI } from "../api/aiApi";
 
 function Home() {
@@ -150,8 +151,6 @@ function Home() {
 
           {messages.map((msg, index) => {
             const isLastMessage = index === messages.length - 1;
-            const shouldAnimate =
-              msg.role === "ai" && isLastMessage && !isMobile;
 
             return (
               <div
@@ -162,8 +161,12 @@ function Home() {
                     : "mr-auto w-full max-w-3xl bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100"
                 }`}
               >
-                {shouldAnimate ? (
-                  <TypingText text={msg.text} />
+                {msg.role === "ai" && isLastMessage ? (
+                  isMobile ? (
+                    <ProgressiveText text={msg.text} />
+                  ) : (
+                    <TypingText text={msg.text} />
+                  )
                 ) : (
                   <p className="whitespace-pre-line leading-relaxed">
                     {msg.text}

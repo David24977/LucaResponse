@@ -4,9 +4,12 @@ function ProgressiveText({ text }) {
   const [visibleText, setVisibleText] = useState("");
 
   useEffect(() => {
+    if (!text) return;
+
+    const length = text.length;
     const parts = [
-      text.slice(0, Math.floor(text.length * 0.35)),
-      text.slice(0, Math.floor(text.length * 0.7)),
+      text.slice(0, Math.max(1, Math.floor(length * 0.35))),
+      text.slice(0, Math.max(2, Math.floor(length * 0.7))),
       text,
     ];
 

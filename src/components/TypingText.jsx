@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 function TypingText({ text }) {
-  const [displayed, setDisplayed] = useState(text ? "" : "");
+  const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
     let animationFrameId;

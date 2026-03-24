@@ -5,7 +5,7 @@ function TypingText({ text }) {
 
   useEffect(() => {
     let start = null;
-    const speed = 20;
+    const speed = 40;
     let animationFrameId;
 
     function animate(timestamp) {

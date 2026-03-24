@@ -4,19 +4,26 @@ function TypingText({ text }) {
   const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
-    let i = 0;
-    setDisplayed("");
+    let start = null;
+    const speed = 20;
+    let animationFrameId;
 
-    const interval = setInterval(() => {
-      i++;
-      setDisplayed(text.slice(0, i));
+    function animate(timestamp) {
+      if (!start) start = timestamp;
 
-      if (i >= text.length) {
-        clearInterval(interval);
+      const elapsed = timestamp - start;
+      const chars = Math.floor(elapsed / speed);
+
+      setDisplayed(text.slice(0, chars));
+
+      if (chars < text.length) {
+        animationFrameId = requestAnimationFrame(animate);
       }
-    }, 15);
+    }
 
-    return () => clearInterval(interval);
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrameId);
   }, [text]);
 
   return (

@@ -2,33 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* OPTIMIZACIÓN PARA MÓVIL Y CHAT */
 @layer base {
+  /* 1. Configuración global del cuerpo */
   html, body {
-    /* Evita el rebote elástico en iOS que a veces corta el scroll del chat */
+    /* Evita el rebote elástico en iOS para que el chat se sienta como una App nativa */
     overscroll-behavior-y: none;
-    @apply antialiased text-gray-900 dark:text-gray-100;
+    @apply antialiased bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors duration-300;
   }
 
-  /* Asegura que el scroll del chat sea independiente y no mueva toda la interfaz */
+  /* 2. TRUCO ANTI-ZOOM: Forzamos 16px en inputs para que el móvil no haga zoom solo */
+  /* En escritorio (md: 768px) volvemos a un tamaño más pequeño si prefieres */
+  input, textarea {
+    font-size: 16px !important;
+  }
+  @media (min-width: 768px) {
+    input, textarea {
+      font-size: 14px !important;
+    }
+  }
+
+  /* 3. Gestión de palabras largas para evitar que el chat se desborde horizontalmente */
+  p, span, div {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+@layer components {
+  /* 4. Contenedor del Chat: Clave para el auto-scroll fluido */
   .chat-container {
-    -webkit-overflow-scrolling: touch;
     /* Evita que el navegador intente "anclar" el scroll mientras el texto crece */
-    overflow-anchor: none; 
+    overflow-anchor: none;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* Truco para que el autoscroll al final del chat sea detectado correctamente */
+  /* Espaciador invisible al final para que scrollIntoView funcione siempre */
   .scroll-spacer {
     overflow-anchor: auto;
     height: 1px;
   }
 }
 
-/* ANIMACIONES */
+/* 5. Animaciones personalizadas */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -37,25 +57,16 @@
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
-/* CORRECCIONES DE TEXTO PARA MÓVIL */
-/* Esto evita que palabras técnicas o largas rompan el diseño en pantallas pequeñas */
-p, span, div {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
-}
-
-/* Personalización del Scrollbar (Opcional, queda muy bien en dark mode) */
+/* 6. Scrollbar minimalista (se ve genial en Dark Mode) */
 ::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+  @apply bg-gray-300 dark:bg-gray-800 rounded-full hover:bg-gray-400 dark:hover:bg-gray-700;
 }

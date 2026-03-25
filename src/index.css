@@ -2,10 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* OPTIMIZACIÓN PARA MÓVIL Y CHAT */
+@layer base {
+  html, body {
+    /* Evita el rebote elástico en iOS que a veces corta el scroll del chat */
+    overscroll-behavior-y: none;
+    @apply antialiased text-gray-900 dark:text-gray-100;
+  }
+
+  /* Asegura que el scroll del chat sea independiente y no mueva toda la interfaz */
+  .chat-container {
+    -webkit-overflow-scrolling: touch;
+    /* Evita que el navegador intente "anclar" el scroll mientras el texto crece */
+    overflow-anchor: none; 
+  }
+
+  /* Truco para que el autoscroll al final del chat sea detectado correctamente */
+  .scroll-spacer {
+    overflow-anchor: auto;
+    height: 1px;
+  }
+}
+
+/* ANIMACIONES */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -14,5 +37,25 @@
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* CORRECCIONES DE TEXTO PARA MÓVIL */
+/* Esto evita que palabras técnicas o largas rompan el diseño en pantallas pequeñas */
+p, span, div {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Personalización del Scrollbar (Opcional, queda muy bien en dark mode) */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
 }

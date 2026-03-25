@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import QueryInput from "../components/QueryInput";
 import SmartTypingText from "../components/SmartTypingText"; 
 import { queryAI } from "../api/aiApi";
@@ -16,7 +16,7 @@ function Home() {
 
   const messagesEndRef = useRef(null);
 
-  // Dark mode
+  // 🌙 Dark mode
   useEffect(() => {
     localStorage.setItem("dark_mode", JSON.stringify(darkMode));
     if (darkMode) {
@@ -26,20 +26,23 @@ function Home() {
     }
   }, [darkMode]);
 
-  // Guardar mensajes
+  // 💾 Guardar mensajes
   useEffect(() => {
     localStorage.setItem("luca_messages", JSON.stringify(messages));
   }, [messages]);
 
-  // Scroll automático optimizado
+  // 📜 Scroll automático optimizado para móvil
   useEffect(() => {
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    // En móviles usamos 'auto' para ahorrar batería y CPU durante la animación
+    // Detectamos si es móvil de forma simple pero estable
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // TRUCO: En móvil usas scroll 'auto' (instantáneo) para no saturar la CPU
+    // mientras se anima el texto. En laptop usas 'smooth' para mejor UX.
     messagesEndRef.current?.scrollIntoView({ 
       behavior: isMobile ? "auto" : "smooth",
-      block: "end" 
+      block: "end" // Asegura que el final del mensaje sea visible
     });
-  }, [messages, loading]);
+  }, [messages, loading]); // Se dispara cuando cambian los mensajes o carga
 
   const handleQuery = async (query) => {
     const cleanQuery = query.trim();
@@ -77,87 +80,134 @@ function Home() {
     }
   };
 
+  // Memorizamos el número de mensajes para usarlo como key estable
+  const messagesCount = useMemo(() => messages.length, [messages]);
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       
-      {/* HEADER */}
-      <header className="sticky top-0 z-20 bg-white dark:bg-gray-800 shadow-md">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <img src="/favicon.ico?v=2" className="h-8 w-8" alt="Logo" />
-            <h1 className="text-lg font-bold text-gray-800 dark:text-white">LucaResponse</h1>
+      {/* HEADER: Con efecto cristal (backdrop-blur) y diseño profesional */}
+      <header className="sticky top-0 z-20 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 shadow-sm">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 md:px-6">
+          <div className="flex items-center gap-3 group">
+            <img
+              src="/favicon.ico?v=2"
+              alt="LucaResponse logo"
+              className="h-9 w-9 object-contain transition-transform duration-300 group-hover:scale-110"
+            />
+            <div>
+              <h1 className="text-xl font-extrabold text-gray-900 dark:text-white md:text-2xl">
+                Luca<span className="text-blue-600 dark:text-blue-500">Response</span>
+              </h1>
+              <p className="hidden text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 sm:block">
+                AI Assistant • Spring Boot + Groq
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            {messages.length > 0 && (
-              <button onClick={clearChat} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white">
+          <div className="flex items-center gap-2 md:gap-3">
+            {messagesCount > 0 && (
+              <button
+                onClick={clearChat}
+                className="rounded-xl bg-red-100 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors"
+              >
                 Clear
               </button>
             )}
-            <button onClick={() => setDarkMode(!darkMode)} className="rounded-lg bg-gray-200 p-2 dark:bg-gray-700">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="rounded-xl bg-gray-100 p-2.5 dark:bg-gray-800 text-lg hover:bg-gray-200 dark:hover:bg-gray-700/70 transition-colors"
+              aria-label="Toggle dark mode"
+            >
               {darkMode ? "☀️" : "🌙"}
             </button>
           </div>
         </div>
       </header>
 
-      {/* CHAT */}
-      <main className="flex-1 overflow-y-auto pb-32">
-        <div className="mx-auto w-full max-w-4xl flex flex-col gap-6 px-4 py-6">
+      {/* CHAT MAIN: Con padding inferior para el footer fixed y clase para el CSS */}
+      <main className="flex-1 overflow-y-auto chat-container pb-40 md:pb-36">
+        <div className="mx-auto w-full max-w-4xl flex flex-col gap-6 px-4 py-8 md:px-6">
+          
+          {messagesCount === 0 && (
+            <div className="text-center pt-16 pb-10 animate-fadeIn">
+              <div className="inline-flex p-4 rounded-3xl bg-blue-50 dark:bg-blue-950 mb-6">
+                <img src="/favicon.ico?v=2" alt="Luca Logo" className="h-16 w-16 opacity-90" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Hola, soy Luca</h2>
+              <p className="text-gray-600 dark:text-gray-400 mt-3 max-w-md mx-auto">¿En qué puedo ayudarte hoy? Hazme cualquier pregunta y usaré la IA para responderte.</p>
+            </div>
+          )}
+
           {messages.map((msg, index) => {
-            const isLastAiMessage = msg.role === "ai" && index === messages.length - 1;
+            const isLastAiMessage = msg.role === "ai" && index === messagesCount - 1;
 
             return (
               <div
-                key={`${index}-${messages.length}`}
-                className={`rounded-2xl p-4 shadow-sm ${
-                  msg.role === "user"
-                    ? "ml-auto max-w-[85%] bg-blue-600 text-white rounded-br-none"
-                    : "mr-auto w-full bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-200 dark:border-gray-700"
-                }`}
+                key={`${index}-${messagesCount}`}
+                className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fadeIn`}
               >
-                {isLastAiMessage ? (
-                  // Solo animamos el último mensaje de la IA
-                  <SmartTypingText text={msg.text} />
-                ) : (
-                  // Mensajes estáticos (historial)
-                  <p className="whitespace-pre-line leading-relaxed break-words text-sm md:text-base">
-                    {msg.text}
-                  </p>
-                )}
-
                 {msg.role === "ai" && (
-                  <div className="mt-3 text-right">
-                    <button
-                      onClick={() => copyToClipboard(msg.text)}
-                      className="text-[10px] uppercase tracking-wider text-gray-400 hover:text-blue-500 transition-colors"
-                    >
-                      [ Copy ]
-                    </button>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center border border-blue-200 dark:border-blue-800">
+                    <img src="/favicon.ico?v=2" alt="AI" className="h-5 w-5 opacity-90" />
                   </div>
                 )}
+                
+                <div
+                  className={`rounded-2xl px-5 py-3.5 shadow-sm max-w-[85%] md:max-w-[75%] ${
+                    msg.role === "user"
+                      ? "bg-blue-600 text-white rounded-br-none"
+                      : "bg-white text-gray-800 dark:bg-gray-800/80 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-700/50"
+                  }`}
+                >
+                  {isLastAiMessage ? (
+                    // Solo animamos el último mensaje de la IA. Velocidad 30ms.
+                    <SmartTypingText text={msg.text} speed={30} />
+                  ) : (
+                    // Mensajes estáticos (historial) o del usuario.
+                    <p className="whitespace-pre-line leading-relaxed text-sm md:text-base">
+                      {msg.text}
+                    </p>
+                  )}
+
+                  {msg.role === "ai" && (
+                    <div className="mt-3 pt-2 text-right border-t border-gray-100 dark:border-gray-700/50">
+                      <button
+                        onClick={() => copyToClipboard(msg.text)}
+                        className="text-[10px] uppercase tracking-wider font-bold text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                      >
+                        [ Copy Response ]
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
 
+          {/* LOADER: Diseño moderno y minimalista */}
           {loading && (
-            <div className="mr-auto flex flex-col gap-2 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <span className="text-xs font-semibold text-gray-400">LUCA THINKING</span>
-              <div className="flex gap-1.5">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="flex gap-3 justify-start animate-fadeIn">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800/80 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 animate-spin"></div>
+              </div>
+              <div className="px-5 py-3.5 bg-white dark:bg-gray-800/80 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700/50 shadow-sm text-sm text-gray-500 dark:text-gray-400 italic">
+                Luca está pensando...
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
+          
+          {/* Div espaciador para el scroll automático */}
+          <div ref={messagesEndRef} className="h-1 scroll-spacer" />
         </div>
       </main>
 
-      {/* INPUT */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-100 via-gray-100 to-transparent dark:from-gray-900 dark:via-gray-900 px-4 py-6">
+      {/* INPUT: Fixed abajo con un degradado de fondo para integrarse */}
+      <footer className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-gray-950 dark:via-gray-950/90 px-4 pt-6 pb-6 md:pb-8">
         <div className="mx-auto max-w-4xl">
           <QueryInput onQuery={handleQuery} disabled={loading} />
-          <p className="text-[10px] text-center text-gray-400 mt-2">Luca API LLM - v2.0</p>
+          <p className="text-[10px] text-center text-gray-400 dark:text-gray-600 mt-3 font-medium tracking-wide">
+            Luca AI LLM v2.1 | Built with Groq & Spring Boot
+          </p>
         </div>
       </footer>
     </div>

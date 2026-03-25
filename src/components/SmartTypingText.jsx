@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react";
 
-const SmartTypingText = memo(({ text, speed = 20 }) => {
+const SmartTypingText = memo(({ text, speed = 30 }) => {
   const [displayed, setDisplayed] = useState("");
   const timerRef = useRef(null);
   const indexRef = useRef(0);

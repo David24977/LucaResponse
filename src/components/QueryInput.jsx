@@ -4,7 +4,7 @@ function QueryInput({ onQuery, disabled = false }) {
   const [query, setQuery] = useState("");
   const textareaRef = useRef(null);
 
-  // 📝 Auto-ajustar la altura del textarea conforme se escribe
+  // Auto-ajustar la altura del textarea conforme se escribe
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {

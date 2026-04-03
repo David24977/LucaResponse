@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import QueryInput from "../components/QueryInput";
 import SmartTypingText from "../components/SmartTypingText"; 
-import { queryAI } from "../api/aiApi";
+import { queryAI, resetConversation } from "../api/aiApi";
 
 function Home() {
   const [messages, setMessages] = useState(() => {
@@ -16,7 +16,7 @@ function Home() {
 
   const messagesEndRef = useRef(null);
 
-  // 🌙 Dark mode
+  // Dark mode
   useEffect(() => {
     localStorage.setItem("dark_mode", JSON.stringify(darkMode));
     if (darkMode) {
@@ -26,12 +26,16 @@ function Home() {
     }
   }, [darkMode]);
 
-  // 💾 Guardar mensajes
+  // Guardar mensajes
   useEffect(() => {
-    localStorage.setItem("luca_messages", JSON.stringify(messages));
+    const messagesToSave = messages.map(msg => ({
+    role: msg.role,
+    text: msg.text
+  }));
+    localStorage.setItem("luca_messages", JSON.stringify(messagesToSave));
   }, [messages]);
 
-  // 📜 Scroll automático optimizado para móvil
+  // Scroll automático optimizado para móvil
   useEffect(() => {
     // Detectamos si es móvil de forma simple pero estable
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -55,7 +59,7 @@ function Home() {
       const result = await queryAI(cleanQuery);
       setMessages((prev) => [
         ...prev,
-        { role: "ai", text: result.response || "No response received." },
+        { role: "ai", text: result.response || "No response received.", isNew: true },
       ]);
     } catch {
       setMessages((prev) => [
@@ -68,6 +72,7 @@ function Home() {
   };
 
   const clearChat = () => {
+    resetConversation();
     setMessages([]);
     localStorage.removeItem("luca_messages");
   };
@@ -110,7 +115,7 @@ function Home() {
                 onClick={clearChat}
                 className="rounded-xl bg-red-100 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors"
               >
-                Clear
+                New Chat
               </button>
             )}
             <button
@@ -139,7 +144,7 @@ function Home() {
           )}
 
           {messages.map((msg, index) => {
-            const isLastAiMessage = msg.role === "ai" && index === messagesCount - 1;
+           const shouldAnimate = msg.role === "ai" && msg.isNew;
 
             return (
               <div
@@ -159,7 +164,7 @@ function Home() {
                       : "bg-white text-gray-800 dark:bg-gray-800/80 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-700/50"
                   }`}
                 >
-                  {isLastAiMessage ? (
+                  {shouldAnimate ? (
                     // Solo animamos el último mensaje de la IA. Velocidad 30ms.
                     <SmartTypingText text={msg.text} speed={30} />
                   ) : (

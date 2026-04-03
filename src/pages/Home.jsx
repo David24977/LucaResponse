@@ -49,28 +49,34 @@ function Home() {
   }, [messages, loading]); // Se dispara cuando cambian los mensajes o carga
 
   const handleQuery = async (query) => {
-    const cleanQuery = query.trim();
-    if (!cleanQuery || loading) return;
+  const cleanQuery = query.trim();
+  if (!cleanQuery || loading) return;
 
-    setMessages((prev) => [...prev, { role: "user", text: cleanQuery }]);
-    setLoading(true);
+  // 1. Limpiamos la marca 'isNew' de todos los mensajes anteriores 
+  // y añadimos el nuevo mensaje del usuario
+  setMessages((prev) => [
+    ...prev.map(msg => ({ ...msg, isNew: false })), // El truco está aquí
+    { role: "user", text: cleanQuery }
+  ]);
+  
+  setLoading(true);
 
-    try {
-      const result = await queryAI(cleanQuery);
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", text: result.response || "No response received.", isNew: true },
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", text: "Error contacting AI service. Please try again." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  try {
+    const result = await queryAI(cleanQuery);
+    // 2. Añadimos la respuesta de la IA con isNew: true
+    setMessages((prev) => [
+      ...prev,
+      { role: "ai", text: result.response || "No response received.", isNew: true },
+    ]);
+  } catch {
+    setMessages((prev) => [
+      ...prev,
+      { role: "ai", text: "Error contacting AI service. Please try again.", isNew: false },
+    ]);
+  } finally {
+    setLoading(false);
+  }
+};
   const clearChat = () => {
     resetConversation();
     setMessages([]);

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, memo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm"; // <--- Indispensable para tablas y más
 
-const SmartTypingText = memo(({ text, speed = 30 }) => {
+const SmartTypingText = memo(({ text, speed = 10 }) => {
   const [displayed, setDisplayed] = useState("");
   const timerRef = useRef(null);
   const indexRef = useRef(0);
@@ -8,40 +10,37 @@ const SmartTypingText = memo(({ text, speed = 30 }) => {
   useEffect(() => {
     let isEffectActive = true;
 
-    // 1. En lugar de limpiar DIRECTAMENTE, lo metemos en una función
-    // que se ejecute justo después del montaje inicial.
     const startAnimation = () => {
       if (!isEffectActive) return;
-
-      // Limpiamos referencias
       if (timerRef.current) clearTimeout(timerRef.current);
       indexRef.current = 0;
-      
-      // Actualizamos el estado para empezar de cero
       setDisplayed("");
 
       const tick = () => {
         if (!isEffectActive) return;
-
         const isMobile = window.innerWidth < 768;
-        const increment = isMobile ? 3 : 1;
+        const increment = isMobile ? 3 : 2;
 
         if (indexRef.current < text.length) {
           indexRef.current += increment;
-          // Usamos la versión funcional de setEstado para más seguridad
           setDisplayed(text.slice(0, indexRef.current));
+          
+          // SCROLL DINÁMICO: Mantiene la vista en el final del chat
+          const chatContainer = document.querySelector('.chat-container');
+          if (chatContainer) {
+            chatContainer.scrollTo({
+              top: chatContainer.scrollHeight,
+              behavior: 'auto' 
+            });
+          }
+          
           timerRef.current = setTimeout(tick, speed);
         }
       };
-
-      // Lanzamos el primer tick con un pequeño respiro
-      timerRef.current = setTimeout(tick, 50);
+      timerRef.current = setTimeout(tick, 30);
     };
 
-    // 2. Usamos requestAnimationFrame o un setTimeout 0 
-    // para sacar la limpieza del flujo de renderizado inmediato.
     const starterId = setTimeout(startAnimation, 0);
-
     return () => {
       isEffectActive = false;
       clearTimeout(starterId);
@@ -50,12 +49,14 @@ const SmartTypingText = memo(({ text, speed = 30 }) => {
   }, [text, speed]);
 
   return (
-    <p className="whitespace-pre-line leading-relaxed break-words text-sm md:text-base">
-      {displayed}
-      {displayed.length < text.length && (
-        <span className="ml-1 inline-block w-2 h-4 bg-blue-500 animate-pulse align-middle" />
-      )}
-    </p>
+    <div className="prose dark:prose-invert prose-sm md:prose-base max-w-none 
+                    prose-table:border prose-table:border-gray-200 dark:prose-table:border-gray-700
+                    prose-th:bg-gray-50 dark:prose-th:bg-gray-900/50 prose-th:p-2
+                    prose-td:p-2 prose-td:border-t dark:prose-td:border-gray-700">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {displayed}
+      </ReactMarkdown>
+    </div>
   );
 });
 

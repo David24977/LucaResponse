@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import QueryInput from "../components/QueryInput";
 import SmartTypingText from "../components/SmartTypingText"; 
 import { queryAI, resetConversation } from "../api/aiApi";
+import ReactMarkdown from "react-markdown";
 
 function Home() {
   const [messages, setMessages] = useState(() => {
@@ -172,12 +173,14 @@ function Home() {
                 >
                   {shouldAnimate ? (
                     // Solo animamos el último mensaje de la IA. Velocidad 30ms.
-                    <SmartTypingText text={msg.text} speed={30} />
+                    <SmartTypingText text={msg.text} speed={10} />
                   ) : (
                     // Mensajes estáticos (historial) o del usuario.
-                    <p className="whitespace-pre-line leading-relaxed text-sm md:text-base">
+                    <div className="prose dark:prose-invert prose-sm md:prose-base max-w-none">
+                      <ReactMarkdown>
                       {msg.text}
-                    </p>
+                      </ReactMarkdown>
+                    </div>
                   )}
 
                   {msg.role === "ai" && (

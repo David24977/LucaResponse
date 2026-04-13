@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm"; // <--- Indispensable para tablas y más
+import remarkGfm from "remark-gfm";
 
 const SmartTypingText = memo(({ text, speed = 10 }) => {
   const [displayed, setDisplayed] = useState("");
@@ -18,14 +18,16 @@ const SmartTypingText = memo(({ text, speed = 10 }) => {
 
       const tick = () => {
         if (!isEffectActive) return;
+        
+        // Mantenemos el incremento en 1 para que el Markdown 
+        // se procese mejor en móviles durante la animación
         const isMobile = window.innerWidth < 768;
-        const increment = isMobile ? 3 : 2;
+        const increment = isMobile ? 2 : 1; 
 
         if (indexRef.current < text.length) {
           indexRef.current += increment;
           setDisplayed(text.slice(0, indexRef.current));
           
-          // SCROLL DINÁMICO: Mantiene la vista en el final del chat
           const chatContainer = document.querySelector('.chat-container');
           if (chatContainer) {
             chatContainer.scrollTo({
@@ -40,21 +42,19 @@ const SmartTypingText = memo(({ text, speed = 10 }) => {
       timerRef.current = setTimeout(tick, 30);
     };
 
-    const starterId = setTimeout(startAnimation, 0);
+    startAnimation();
+
     return () => {
       isEffectActive = false;
-      clearTimeout(starterId);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [text, speed]);
 
+  // RETURN CORREGIDO: Sin errores de sintaxis y listo para Vercel
   return (
-    <div className="prose dark:prose-invert prose-sm md:prose-base max-w-none 
-                    prose-table:border prose-table:border-gray-200 dark:prose-table:border-gray-700
-                    prose-th:bg-gray-50 dark:prose-th:bg-gray-900/50 prose-th:p-2
-                    prose-td:p-2 prose-td:border-t dark:prose-td:border-gray-700">
+    <div className="prose dark:prose-invert prose-sm md:prose-base max-w-none break-words">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {displayed}
+        {displayed || ""}
       </ReactMarkdown>
     </div>
   );

@@ -113,7 +113,7 @@ function Home() {
               className="h-9 w-9 object-contain transition-transform duration-300 group-hover:scale-110"
             />
             <div>
-              <h1 className="text-xl font-extrabold text-gray-900 dark:text-white md:text-2xl">
+              <h1 className="text-xl font-extrabold text-gray-900 dark:text-white md:text-2xl tracking-tighter">
                 Luca
                 <span className="text-blue-600 dark:text-blue-500">
                   Response

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import QueryInput from "../components/QueryInput";
-import SmartTypingText from "../components/SmartTypingText"; 
+import SmartTypingText from "../components/SmartTypingText";
 import { queryAI, resetConversation } from "../api/aiApi";
 
 function Home() {
@@ -30,19 +30,22 @@ function Home() {
 
   // Persistencia de mensajes
   useEffect(() => {
-    const messagesToSave = messages.map(msg => ({
+    const messagesToSave = messages.map((msg) => ({
       role: msg.role,
-      text: msg.text
+      text: msg.text,
     }));
     localStorage.setItem("luca_messages", JSON.stringify(messagesToSave));
   }, [messages]);
 
   // Scroll automático
   useEffect(() => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    messagesEndRef.current?.scrollIntoView({ 
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      );
+    messagesEndRef.current?.scrollIntoView({
       behavior: isMobile ? "auto" : "smooth",
-      block: "end" 
+      block: "end",
     });
   }, [messages, loading]);
 
@@ -52,22 +55,30 @@ function Home() {
 
     // Marcamos los anteriores como antiguos y añadimos el del usuario
     setMessages((prev) => [
-      ...prev.map(msg => ({ ...msg, isNew: false })),
-      { role: "user", text: cleanQuery, isNew: false }
+      ...prev.map((msg) => ({ ...msg, isNew: false })),
+      { role: "user", text: cleanQuery, isNew: false },
     ]);
-    
+
     setLoading(true);
 
     try {
       const result = await queryAI(cleanQuery);
       setMessages((prev) => [
         ...prev,
-        { role: "ai", text: result.response || "No response received.", isNew: true },
+        {
+          role: "ai",
+          text: result.response || "No response received.",
+          isNew: true,
+        },
       ]);
-    } catch  {
+    } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "ai", text: "Error contacting AI service. Please try again.", isNew: false },
+        {
+          role: "ai",
+          text: "Error contacting AI service. Please try again.",
+          isNew: false,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -92,7 +103,6 @@ function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
-      
       {/* HEADER */}
       <header className="sticky top-0 z-20 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 md:px-6">
@@ -104,7 +114,10 @@ function Home() {
             />
             <div>
               <h1 className="text-xl font-extrabold text-gray-900 dark:text-white md:text-2xl">
-                Luca<span className="text-blue-600 dark:text-blue-500">Response</span>
+                Luca
+                <span className="text-blue-600 dark:text-blue-500">
+                  Response
+                </span>
               </h1>
               <p className="hidden text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 sm:block">
                 AI Assistant • Gemini Pro
@@ -112,6 +125,29 @@ function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="rounded-xl bg-gray-100 p-2.5 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700/70 transition-all active:scale-95 group"
+              title="Actualizar App"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-600 dark:text-gray-400 group-hover:rotate-180 transition-transform duration-500"
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M3 21v-5h5" />
+              </svg>
+            </button>
             {messagesCount > 0 && (
               <button
                 onClick={clearChat}
@@ -134,14 +170,21 @@ function Home() {
       {/* CHAT MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto chat-container pb-40 md:pb-36">
         <div className="mx-auto w-full max-w-4xl flex flex-col gap-6 px-4 py-8 md:px-6">
-          
           {messagesCount === 0 && (
             <div className="text-center pt-16 pb-10 animate-fadeIn">
               <div className="inline-flex p-4 rounded-3xl bg-blue-50 dark:bg-blue-950 mb-6">
-                <img src="/favicon.ico?v=2" alt="Luca Logo" className="h-16 w-16 opacity-90" />
+                <img
+                  src="/favicon.ico?v=2"
+                  alt="Luca Logo"
+                  className="h-16 w-16 opacity-90"
+                />
               </div>
-              <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Hola, soy Luca</h2>
-              <p className="text-gray-600 dark:text-gray-400 mt-3 max-w-md mx-auto">¿En qué puedo ayudarte hoy?</p>
+              <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+                Hola, soy Luca
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mt-3 max-w-md mx-auto">
+                ¿En qué puedo ayudarte hoy?
+              </p>
             </div>
           )}
 
@@ -156,10 +199,14 @@ function Home() {
               >
                 {isAI && (
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center border border-blue-200 dark:border-blue-800">
-                    <img src="/favicon.ico?v=2" alt="AI" className="h-5 w-5 opacity-90" />
+                    <img
+                      src="/favicon.ico?v=2"
+                      alt="AI"
+                      className="h-5 w-5 opacity-90"
+                    />
                   </div>
                 )}
-                
+
                 <div
                   className={`rounded-2xl px-5 py-3.5 shadow-sm max-w-[85%] md:max-w-[75%] ${
                     msg.role === "user"
@@ -203,7 +250,7 @@ function Home() {
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} className="h-1 scroll-spacer" />
         </div>
       </main>

@@ -75,6 +75,15 @@
 .prose {
   /* Evita que el contenedor de texto supere el ancho del móvil */
   max-width: 100% !important;
+  /* Forzamos 17px en móvil, que es excelente para lectura, y 16px en PC */
+  font-size: 17px !important; 
+  line-height: 1.6 !important;
+}
+
+@media (min-width: 768px) {
+  .prose {
+    font-size: 16px !important;
+  }
 }
 
 .prose table {
@@ -95,4 +104,24 @@
   word-break: break-all;
   padding: 1rem;
   border-radius: 0.75rem;
+}
+
+/* 8. Ajustes de Bocadillos para Móvil */
+@media (max-width: 768px) {
+  /* Hacemos que el bocadillo use casi todo el ancho para que la letra no se amontone */
+  .max-w-\[85\%\] {
+    max-width: 92% !important;
+  }
+
+  /* Aumentamos un pelín el texto que no es Markdown (mensajes cortos o de usuario) */
+  .rounded-2xl {
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  
+  /* Reducimos el espacio del avatar para que no empuje tanto al bocadillo */
+  .flex-shrink-0.w-8.h-8 {
+    width: 28px !important;
+    height: 28px !important;
+  }
 }

@@ -70,3 +70,29 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-gray-300 dark:bg-gray-800 rounded-full hover:bg-gray-400 dark:hover:bg-gray-700;
 }
+
+/* 7. Ajustes específicos para Markdown (Typography) */
+.prose {
+  /* Evita que el contenedor de texto supere el ancho del móvil */
+  max-width: 100% !important;
+}
+
+.prose table {
+  /* Hace que las tablas sean desplazables lateralmente en móviles */
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  /* Evita que los bordes se peguen */
+  border-collapse: collapse;
+}
+
+/* Mejora la legibilidad de bloques de código en móvil */
+.prose pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 1rem;
+  border-radius: 0.75rem;
+}

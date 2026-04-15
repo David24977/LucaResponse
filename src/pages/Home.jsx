@@ -71,12 +71,12 @@ function Home() {
           isNew: true,
         },
       ]);
-    } catch {
+    } catch(error) {
       setMessages((prev) => [
         ...prev,
         {
           role: "ai",
-          text: "Error contacting AI service. Please try again.",
+          text: error.message || "Error contacting AI service. Please try again.",
           isNew: false,
         },
       ]);

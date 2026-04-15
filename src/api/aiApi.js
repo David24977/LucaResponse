@@ -31,9 +31,11 @@ export async function queryAI(query) {
     }),
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    throw new Error("Server error");
+    throw new Error(data.message || "Server error");
   }
 
-  return response.json();
+  return data;
 }

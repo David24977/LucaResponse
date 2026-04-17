@@ -43,6 +43,7 @@ function QueryInput({ onQuery, disabled = false }) {
         onKeyDown={handleKeyDown}
         placeholder="Pregunta a Luca..."
         disabled={disabled}
+        maxLength={4000}
         className="flex-1 max-h-40 min-h-[44px] resize-none rounded-xl bg-transparent px-3 py-2.5 text-gray-800 dark:text-white outline-none placeholder:text-gray-400 disabled:opacity-50 text-base"
         style={{ lineHeight: '1.5' }}
       />

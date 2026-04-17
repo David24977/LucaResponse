@@ -98,12 +98,26 @@
   border-collapse: collapse;
 }
 
-/* Mejora la legibilidad de bloques de código en móvil */
+/* Permite scroll lateral en bloques de código para no romper la sintaxis */
 .prose pre {
-  white-space: pre-wrap;
-  word-break: break-all;
-  padding: 1rem;
+  white-space: pre !important;    /* Mantiene el código en una sola línea */
+  overflow-x: auto !important;    /* Activa el scroll horizontal */
+  word-break: normal !important;  /* Evita que se corten las palabras */
+  word-wrap: normal !important;   /* Evita que el texto baje a la siguiente línea */
+  padding: 1.25rem;
   border-radius: 0.75rem;
+  /* Opcional: un borde sutil para que se distinga mejor el bloque */
+  @apply border border-gray-200 dark:border-gray-800;
+}
+
+/* También para el código en línea (el que va entre ` `) */
+.prose code {
+  white-space: nowrap;
+}
+
+/* Pero el código dentro de un PRE (bloque) sí debe permitir el nowrap */
+.prose pre code {
+  white-space: pre !important;
 }
 
 /* 8. Ajustes de Bocadillos para Móvil */

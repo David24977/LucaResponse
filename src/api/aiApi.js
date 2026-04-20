@@ -1,4 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
+import { getUUID } from "../utils/uuid";
 
 function getOrCreateConversationId() {
   let conversationId = localStorage.getItem("conversationId");
@@ -14,7 +15,7 @@ function getOrCreateConversationId() {
 }
 
 export function resetConversation() {
-  const newId = crypto.randomUUID();
+  const newId = getUUID();
   localStorage.setItem("conversationId", newId);
 }
 

@@ -3,13 +3,21 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import QueryInput from "../components/QueryInput";
 import SmartTypingText from "../components/SmartTypingText";
+import Sidebar from "../components/Sidebar";
 import { queryAI, resetConversation } from "../api/aiApi";
+import { chatService } from "../utils/chatService";
+import { getUUID } from "../utils/uuid";
 
 function Home() {
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem("luca_messages");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [activeChatId, setActiveChatId] = useState(() => {
+  const savedId = localStorage.getItem("luca_active_chat_id");
+  if (savedId) return savedId;
+  // Si no existe, generamos uno manualmente que no falle nunca
+  return localStorage.getItem("luca_active_chat_id") || getUUID();
+});
+  
+const [allChats, setAllChats] = useState(() => chatService.getAllChats());
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("dark_mode");
@@ -18,252 +26,163 @@ function Home() {
 
   const messagesEndRef = useRef(null);
 
-  // Gestión de Dark Mode
+  const currentMessages = useMemo(() => {
+    return allChats[activeChatId]?.messages || [];
+  }, [allChats, activeChatId]);
+
   useEffect(() => {
     localStorage.setItem("dark_mode", JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  // Persistencia de mensajes
   useEffect(() => {
-    const messagesToSave = messages.map((msg) => ({
-      role: msg.role,
-      text: msg.text,
-    }));
-    localStorage.setItem("luca_messages", JSON.stringify(messagesToSave));
-  }, [messages]);
+    localStorage.setItem("luca_active_chat_id", activeChatId);
+  }, [activeChatId]);
 
-  // Scroll automático
   useEffect(() => {
-    const isMobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent,
-      );
-    messagesEndRef.current?.scrollIntoView({
-      behavior: isMobile ? "auto" : "smooth",
-      block: "end",
-    });
-  }, [messages, loading]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [currentMessages, loading]);
 
   const handleQuery = async (query) => {
     const cleanQuery = query.trim();
     if (!cleanQuery || loading) return;
 
-    // Marcamos los anteriores como antiguos y añadimos el del usuario
-    setMessages((prev) => [
-      ...prev.map((msg) => ({ ...msg, isNew: false })),
-      { role: "user", text: cleanQuery, isNew: false },
-    ]);
+    const userMsg = { role: "user", text: cleanQuery, isNew: false };
+    const updatedWithUser = chatService.saveChat(activeChatId, [...currentMessages, userMsg]);
+    setAllChats(updatedWithUser);
 
     setLoading(true);
-
     try {
-      const result = await queryAI(cleanQuery);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          text: result.response || "No response received.",
-          isNew: true,
-        },
-      ]);
-    } catch(error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          text: error.message || "Error contacting AI service. Please try again.",
-          isNew: false,
-        },
-      ]);
+      const result = await queryAI(cleanQuery, activeChatId);
+      const aiMsg = { role: "ai", text: result.response || "No response received.", isNew: true };
+      setAllChats(chatService.saveChat(activeChatId, [...currentMessages, userMsg, aiMsg]));
+    } catch {
+      const errorMsg = { role: "ai", text: "Error de conexión con la IA.", isNew: false };
+      setAllChats(chatService.saveChat(activeChatId, [...currentMessages, userMsg, errorMsg]));
     } finally {
       setLoading(false);
     }
   };
 
-  const clearChat = () => {
-    resetConversation();
-    setMessages([]);
-    localStorage.removeItem("luca_messages");
-  };
+ const handleCreateNewChat = () => {
+  resetConversation(); 
+  // Generador manual para nuevos chats
+  const newId = getUUID;
+  setActiveChatId(newId);
+  if (window.innerWidth < 768) setIsSidebarOpen(false);
+};
 
-  const copyToClipboard = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (error) {
-      console.error("Clipboard copy failed:", error);
-    }
+  const handleDeleteChat = (id) => {
+    const updated = chatService.deleteChat(id);
+    setAllChats(updated);
+    if (id === activeChatId) handleCreateNewChat();
   };
-
-  const messagesCount = useMemo(() => messages.length, [messages]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
-      {/* HEADER */}
-      <header className="sticky top-0 z-20 bg-white/90 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800 shadow-sm">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 md:px-6">
-          <div className="flex items-center gap-3 group">
-            <img
-              src="/favicon.ico?v=2"
-              alt="LucaResponse logo"
-              className="h-9 w-9 object-contain transition-transform duration-300 group-hover:scale-110"
-            />
-            <div>
-              <h1 className="text-xl font-extrabold text-gray-900 dark:text-white md:text-2xl tracking-tighter">
-                Luca
-                <span className="text-blue-600 dark:text-blue-500">
-                  Response
-                </span>
-              </h1>
-              <p className="hidden text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 sm:block">
-                AI Assistant • Gemini Pro
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="rounded-xl bg-gray-100 p-2.5 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700/70 transition-all active:scale-95 group"
-              title="Actualizar App"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-gray-600 dark:text-gray-400 group-hover:rotate-180 transition-transform duration-500"
+    <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-950 overflow-hidden relative">
+      
+      <Sidebar 
+        allChats={allChats}
+        activeChatId={activeChatId}
+        onChatSelect={setActiveChatId}
+        onDeleteChat={handleDeleteChat}
+        isOpen={isSidebarOpen}
+        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
+
+      {/* CONTENEDOR DE CONTENIDO: Se desplaza si el Sidebar está abierto en escritorio */}
+      <div className={`flex-1 flex flex-col min-w-0 h-full relative transition-all duration-300 ${
+        isSidebarOpen ? "md:ml-72" : "ml-0"
+      }`}>
+        
+        {/* HEADER */}
+        <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-md dark:border-gray-800 z-20">
+          <div className="flex items-center gap-3">
+            {!isSidebarOpen && (
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
               >
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M3 21v-5h5" />
-              </svg>
-            </button>
-            {messagesCount > 0 && (
-              <button
-                onClick={clearChat}
-                className="rounded-xl bg-red-100 px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors"
-              >
-                New Chat
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
               </button>
             )}
+            <h1 className="text-xl font-bold dark:text-white tracking-tighter">
+              Luca<span className="text-blue-500">Response</span>
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreateNewChat}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all"
+            >
+              + <span className="hidden sm:inline">Nuevo Chat</span>
+            </button>
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="rounded-xl bg-gray-100 p-2.5 dark:bg-gray-800 text-lg hover:bg-gray-200 dark:hover:bg-gray-700/70 transition-colors"
-              aria-label="Toggle dark mode"
+              className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               {darkMode ? "☀️" : "🌙"}
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* CHAT MAIN CONTENT */}
-      <main className="flex-1 overflow-y-auto chat-container pb-40 md:pb-36">
-        <div className="mx-auto w-full max-w-4xl flex flex-col gap-6 px-4 py-8 md:px-6">
-          {messagesCount === 0 && (
-            <div className="text-center pt-16 pb-10 animate-fadeIn">
-              <div className="inline-flex p-4 rounded-3xl bg-blue-50 dark:bg-blue-950 mb-6">
-                <img
-                  src="/favicon.ico?v=2"
-                  alt="Luca Logo"
-                  className="h-16 w-16 opacity-90"
-                />
+        {/* ÁREA DE MENSAJES */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+          <div className="max-w-4xl mx-auto space-y-6 pb-40">
+            {currentMessages.length === 0 ? (
+              <div className="h-[60vh] flex flex-col items-center justify-center text-center animate-fadeIn">
+                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mb-4">
+                  <img src="/favicon.ico?v=2" alt="Luca" className="w-10 h-10 opacity-80" />
+                </div>
+                <h2 className="text-2xl font-bold dark:text-white">Hola, soy Luca</h2>
+                <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">¿Qué vamos a crear hoy?</p>
               </div>
-              <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-                Hola, soy Luca
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mt-3 max-w-md mx-auto">
-                ¿En qué puedo ayudarte hoy?
-              </p>
-            </div>
-          )}
-
-          {messages.map((msg, index) => {
-            const isAI = msg.role === "ai";
-            const shouldAnimate = isAI && msg.isNew;
-
-            return (
-              <div
-                key={`${index}-${messagesCount}`}
-                className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fadeIn`}
-              >
-                {isAI && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center border border-blue-200 dark:border-blue-800">
-                    <img
-                      src="/favicon.ico?v=2"
-                      alt="AI"
-                      className="h-5 w-5 opacity-90"
-                    />
+            ) : (
+              currentMessages.map((msg, index) => (
+                <div key={`${activeChatId}-${index}`} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fadeIn`}>
+                  <div className={`max-w-[85%] md:max-w-[75%] p-4 rounded-2xl shadow-sm ${
+                    msg.role === "user" 
+                    ? "bg-blue-600 text-white rounded-br-none" 
+                    : "bg-white dark:bg-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-700"
+                  }`}>
+                    {msg.role === "ai" && msg.isNew ? (
+                      <SmartTypingText text={msg.text} speed={10} />
+                    ) : (
+                      <div className="prose dark:prose-invert prose-sm max-w-none break-words">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+              ))
+            )}
 
-                <div
-                  className={`rounded-2xl px-5 py-3.5 shadow-sm max-w-[85%] md:max-w-[75%] ${
-                    msg.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-none"
-                      : "bg-white text-gray-800 dark:bg-gray-800/80 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-700/50"
-                  }`}
-                >
-                  {shouldAnimate ? (
-                    <SmartTypingText text={msg.text} speed={10} />
-                  ) : (
-                    /* Aquí está la clave: ReactMarkdown con el plugin para el historial */
-                    <div className="prose dark:prose-invert prose-sm md:prose-base max-w-none break-words">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {msg.text}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-
-                  {isAI && (
-                    <div className="mt-3 pt-2 text-right border-t border-gray-100 dark:border-gray-700/50">
-                      <button
-                        onClick={() => copyToClipboard(msg.text)}
-                        className="text-[10px] uppercase tracking-wider font-bold text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                      >
-                        [ Copy Response ]
-                      </button>
-                    </div>
-                  )}
+            {/* FEEDBACK CARGA */}
+            {loading && (
+              <div className="flex gap-3 justify-start animate-fadeIn">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div className="px-5 py-3 bg-white dark:bg-gray-800 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700 shadow-sm text-sm text-gray-500 italic">
+                  Luca está pensando...
                 </div>
               </div>
-            );
-          })}
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </main>
 
-          {loading && (
-            <div className="flex gap-3 justify-start animate-fadeIn">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800/80 flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 animate-spin"></div>
-              </div>
-              <div className="px-5 py-3.5 bg-white dark:bg-gray-800/80 rounded-2xl rounded-bl-none border border-gray-100 dark:border-gray-700/50 shadow-sm text-sm text-gray-500 dark:text-gray-400 italic">
-                Luca está pensando...
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} className="h-1 scroll-spacer" />
-        </div>
-      </main>
-
-      {/* INPUT FIXED AREA */}
-      <footer className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-gray-950 dark:via-gray-950/90 px-4 pt-6 pb-6 md:pb-8">
-        <div className="mx-auto max-w-4xl">
-          <QueryInput onQuery={handleQuery} disabled={loading} />
-          <p className="text-[10px] text-center text-gray-400 dark:text-gray-600 mt-3 font-medium tracking-wide">
-            Luca AI v2.2 | Powered by Gemini & Spring Boot
-          </p>
-        </div>
-      </footer>
+        {/* INPUT */}
+        <footer className="absolute bottom-0 left-0 w-full p-4 md:p-6 bg-gradient-to-t from-gray-50 dark:from-gray-950 via-gray-50 dark:via-gray-950 to-transparent z-20">
+          <div className="max-w-4xl mx-auto">
+            <QueryInput onQuery={handleQuery} disabled={loading} />
+            <p className="text-[10px] text-center text-gray-400 mt-4 font-mono tracking-widest">
+              LOCAL_DB_ACTIVE | SESSION: {activeChatId.slice(0,8)}
+            </p>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

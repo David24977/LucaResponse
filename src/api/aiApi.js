@@ -1,26 +1,20 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
 import { getUUID } from "../utils/uuid";
 
-function getOrCreateConversationId() {
-  let conversationId = localStorage.getItem("conversationId");
-
-  if (!conversationId) {
-    conversationId = crypto.randomUUID();
-    localStorage.setItem("conversationId", conversationId);
-  }
-
+export async function queryAI(query, activeChatId, history = []) {
+  // CONFIGURACIÓN DE OPTIMIZACIÓN:
+  // Solo enviamos los últimos 10 mensajes para ahorrar tokens y mantener el contexto relevante.
+  const MAX_HISTORY_MESSAGES = 10;
   
+  // 1. Recortamos el historial a los últimos X mensajes
+  const optimizedHistory = history.slice(-MAX_HISTORY_MESSAGES);
 
-  return conversationId;
-}
+  // 2. Formateamos el historial para la IA
+  const context = optimizedHistory.map(msg => ({
+    role: msg.role === "user" ? "user" : "assistant",
+    content: msg.text
+  }));
 
-export function resetConversation() {
-  const newId = getUUID();
-  localStorage.setItem("conversationId", newId);
-}
-
-
-export async function queryAI(query) {
   const response = await fetch(`${BASE_URL}/ai/query`, {
     method: "POST",
     headers: {
@@ -28,7 +22,8 @@ export async function queryAI(query) {
     },
     body: JSON.stringify({
       query,
-      conversationId: getOrCreateConversationId(),
+      conversationId: activeChatId,
+      history: context, 
     }),
   });
 
@@ -39,4 +34,9 @@ export async function queryAI(query) {
   }
 
   return data;
+}
+
+export function resetConversation() {
+  const newId = getUUID();
+  return newId;
 }

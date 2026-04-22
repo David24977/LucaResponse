@@ -116,7 +116,7 @@ function Home() {
             <button onClick={() => window.location.reload()} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
             </button>
-            <button onClick={handleCreateNewChat} className="bg-blue-600 text-white text-[10px] font-black py-1.5 px-3 rounded-lg shadow-md hover:bg-blue-700 uppercase tracking-tighter">New Chat</button>
+            <button onClick={handleCreateNewChat} className="bg-red-600 text-white text-[10px] font-black py-1.5 px-3 rounded-lg shadow-md hover:bg-blue-700 uppercase tracking-tighter">New Chat</button>
             <button onClick={() => setDarkMode(!darkMode)} className="text-lg">{darkMode ? "☀️" : "🌙"}</button>
           </div>
         </header>
@@ -124,12 +124,12 @@ function Home() {
         <main className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <div className="max-w-2xl mx-auto space-y-4">
             {currentMessages.length === 0 ? (
-              <div className="py-10 flex flex-col items-center justify-center text-center animate-fadeIn">
-                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mb-4 border border-blue-100 dark:border-blue-800/50 shadow-sm">
-                  <img src="/favicon.ico?v=2" alt="Luca" className="w-8 h-8" />
+              <div className="py-12 flex flex-col items-center justify-center text-center animate-fadeIn">
+                <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-[2rem] flex items-center justify-center mb-6 border border-blue-100 dark:border-blue-800/50 shadow-sm transition-transform hover:scale-105 duration-300">
+                  <img src="/favicon.ico?v=2" alt="Luca" className="w-12 h-12" />
                 </div>
-                <h2 className="text-2xl font-black dark:text-white tracking-tight">LucaResponse</h2>
-                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1 font-mono uppercase tracking-widest">¿En qué te puedo ayudar?</p>
+                <h2 className="text-3xl font-black dark:text-white tracking-tighter">Hola, soy Luca</h2>
+                <p className="text-gray-400 dark:text-gray-500 text-sm mt-2 font-medium max-w-[250px] mx-auto leading-tight">¿En qué te puedo ayudar?</p>
               </div>
             ) : (
               currentMessages.map((msg, index) => (

@@ -51,11 +51,6 @@ function Home() {
     setAllChats(updatedWithUser);
 
     try {
-      /**
-       * MEMORIA FRONTPEND:
-       * Enviamos 'currentMessages' (que incluye el historial del LocalStorage) 
-       * junto con la nueva pregunta para que la API tenga el contexto completo.
-       */
       const result = await queryAI(cleanQuery, activeChatId, currentMessages); 
       
       const aiText = result.response || "Luca no puede responder.";
@@ -94,6 +89,41 @@ function Home() {
     if (id === activeChatId) handleCreateNewChat();
   };
 
+  // --- NUEVA FUNCIÓN DE COPIADO INTELIGENTE ---
+ const handleCopy = async (text, index) => {
+  try {
+    // 1. Buscamos el contenedor del mensaje en el DOM usando el ID único
+    // Esto selecciona exactamente lo que Luca ha renderizado en pantalla
+    const messageElement = document.getElementById(`msg-${index}`);
+    
+    if (!messageElement) {
+      // Si por algo no lo encuentra, hacemos el copy básico
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    // 2. Usamos la API moderna de Selección para "marcar" el texto invisiblemente
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(messageElement);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    // 3. Ejecutamos el comando de copia del navegador
+    // Esto copia tanto el HTML (para Word) como el Texto Plano (para Bloc de notas)
+    // exactamente igual que si el usuario lo hubiera seleccionado con el ratón.
+    document.execCommand('copy');
+
+    // 4. Limpiamos la selección para que el usuario no vea nada azul
+    selection.removeAllRanges();
+
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  } catch {
+    navigator.clipboard.writeText(text);
+  }
+};
+
   return (
     <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-950 overflow-hidden relative">
       <Sidebar 
@@ -104,7 +134,6 @@ function Home() {
 
       <div className={`flex-1 flex flex-col min-w-0 h-full relative transition-all duration-300 ${isSidebarOpen ? "md:ml-72" : "ml-0"}`}>
         
-        {/* Header más compacto (h-14) */}
         <header className="sticky top-0 h-14 flex items-center justify-between px-4 border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur-md dark:border-gray-800 z-50 shrink-0">
           <div className="flex items-center gap-2">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500">
@@ -140,7 +169,7 @@ function Home() {
                     </div>
                   )}
                   <div className="flex flex-col gap-1 max-w-[85%]">
-                    <div className={`px-3 py-2.5 rounded-2xl text-[13px] shadow-sm leading-relaxed ${msg.role === "user" ? "bg-blue-600 text-white rounded-br-none" : "bg-white dark:bg-gray-800 dark:text-gray-100 border dark:border-gray-700 rounded-bl-none"}`}>
+                    <div id={`msg-${index}`} className={`px-3 py-2.5 rounded-2xl text-[13px] shadow-sm leading-relaxed ${msg.role === "user" ? "bg-blue-600 text-white rounded-br-none" : "bg-white dark:bg-gray-800 dark:text-gray-100 border dark:border-gray-700 rounded-bl-none"}`}>
                       {msg.role === "ai" && animatingMsgId === msg.id ? (
                         <SmartTypingText text={msg.text} speed={6} onComplete={() => setAnimatingMsgId(null)} />
                       ) : (
@@ -148,7 +177,10 @@ function Home() {
                       )}
                     </div>
                     {msg.role === "ai" && (
-                      <button onClick={() => {navigator.clipboard.writeText(msg.text); setCopiedIndex(index); setTimeout(()=>setCopiedIndex(null),2000)}} className="text-[9px] font-bold text-gray-400 hover:text-blue-500 ml-1 uppercase">
+                      <button 
+                        onClick={() => handleCopy(msg.text, index)} 
+                        className="text-[9px] font-bold text-gray-400 hover:text-blue-500 ml-1 uppercase"
+                      >
                         {copiedIndex === index ? "Copiado" : "Copiar"}
                       </button>
                     )}

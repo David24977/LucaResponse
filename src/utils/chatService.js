@@ -9,9 +9,8 @@ export const chatService = {
 
   // Guardar o actualizar un chat específico
   saveChat: (chatId, messages) => {
-    const chats = chatService.getAllChats();
+    let chats = chatService.getAllChats();
     
-    // Si es el primer mensaje, generamos un título
     const existingChat = chats[chatId];
     const title = existingChat?.title || 
                   (messages[0]?.text.substring(0, 30) + "..." || "Nuevo Chat");
@@ -19,11 +18,34 @@ export const chatService = {
     chats[chatId] = {
       id: chatId,
       title: title,
-      messages: messages.slice(-12), // Mantenemos tu límite de 12
+      messages: messages.slice(-12), 
       lastUpdated: Date.now(),
     };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    } catch {
+      // Si entramos aquí, es que el LocalStorage está lleno (QuotaExceededError)
+      console.warn("LocalStorage lleno, ejecutando limpieza de chats antiguos...");
+      
+      // 1. Convertimos los chats en un array para poder ordenarlos
+      const chatsArray = Object.values(chats);
+      
+      if (chatsArray.length > 1) {
+        // 2. Ordenamos por el que se actualizó hace más tiempo (el más viejo primero)
+        chatsArray.sort((a, b) => a.lastUpdated - b.lastUpdated);
+        
+        // 3. Identificamos el ID del chat más antiguo (que no sea el que estamos intentando guardar ahora)
+        const oldestId = chatsArray[0].id === chatId ? chatsArray[1].id : chatsArray[0].id;
+        
+        // 4. Borramos ese chat del objeto principal
+        delete chats[oldestId];
+        
+        // 5. Reintentamos guardar (Recursividad controlada)
+        return chatService.saveChat(chatId, messages);
+      }
+    }
+    
     return chats;
   },
 

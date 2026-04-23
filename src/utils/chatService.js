@@ -9,18 +9,35 @@ export const chatService = {
 
   // Guardar o actualizar un chat específico
   saveChat: (chatId, messages) => {
-    let chats = chatService.getAllChats();
-    
-    const existingChat = chats[chatId];
-    const title = existingChat?.title || 
-                  (messages[0]?.text.substring(0, 30) + "..." || "Nuevo Chat");
+  const chats = chatService.getAllChats();
+  const existingChat = chats[chatId];
 
-    chats[chatId] = {
-      id: chatId,
-      title: title,
-      messages: messages.slice(-12), 
-      lastUpdated: Date.now(),
-    };
+  // 1. Si el chat ya tiene título, lo mantenemos
+  let title = existingChat?.title;
+
+  // 2. Si NO tiene título y ya tenemos al menos el primer mensaje de la IA
+  if (!title && messages.length >= 2) {
+    // Tomamos la respuesta de la IA (índice 1)
+    const aiText = messages[1].text;
+    
+    // Limpiamos el Markdown de la respuesta de la IA para el título
+    title = aiText
+      .replace(/[#*`]/g, "") // Quitamos #, * y ticks de código
+      .split('\n')[0]        // Nos quedamos solo con la primera línea
+      .substring(0, 25)      // Cortamos a 25 caracteres
+      .trim() + "...";
+  } 
+  // 3. Fallback: Si solo está la pregunta del usuario aún
+  else if (!title && messages.length === 1) {
+    title = messages[0].text.substring(0, 20) + "...";
+  }
+
+  chats[chatId] = {
+    id: chatId,
+    title: title || "Nuevo Chat",
+    messages: messages.slice(-12),
+    lastUpdated: Date.now(),
+  };
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));

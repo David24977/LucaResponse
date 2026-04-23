@@ -1,11 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 
-function Sidebar({ allChats, activeChatId, onChatSelect, onDeleteChat, isOpen, toggleSidebar }) {
+function Sidebar({ allChats, activeChatId, onChatSelect, onDeleteChat, onRenameChat, isOpen, toggleSidebar }) {
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  
   const chatList = Object.values(allChats).sort((a, b) => b.lastUpdated - a.lastUpdated);
   
   const usedBytes = JSON.stringify(allChats).length;
   const usedKB = (usedBytes / 1024).toFixed(1);
   const usedPercentage = Math.min((usedBytes / (1024 * 1024 * 5)) * 100, 100);
+
+  const handleRename = (e, chatId, currentTitle) => {
+    e.stopPropagation();
+    setMenuOpenId(null);
+    const newTitle = window.prompt("Renombrar chat:", currentTitle);
+    if (newTitle && newTitle.trim() !== "") {
+      onRenameChat(chatId, newTitle);
+    }
+  };
 
   return (
     <>
@@ -32,7 +43,7 @@ function Sidebar({ allChats, activeChatId, onChatSelect, onDeleteChat, isOpen, t
               chatList.map((chat) => (
                 <div 
                   key={chat.id}
-                  className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${
+                  className={`group relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${
                     activeChatId === chat.id 
                       ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" 
                       : "hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent shadow-sm"
@@ -43,7 +54,7 @@ function Sidebar({ allChats, activeChatId, onChatSelect, onDeleteChat, isOpen, t
                   }}
                 >
                   <div className="flex flex-col overflow-hidden flex-1">
-                    <span className={`text-sm truncate pr-2 font-bold ${
+                    <span className={`text-sm truncate pr-6 font-bold ${
                       activeChatId === chat.id ? "text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"
                     }`}>
                       {chat.title || "Nueva conversación"}
@@ -52,12 +63,37 @@ function Sidebar({ allChats, activeChatId, onChatSelect, onDeleteChat, isOpen, t
                       {new Date(chat.lastUpdated).toLocaleDateString()}
                     </span>
                   </div>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id); }}
-                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  </button>
+
+                  {/* Botón 3 puntitos */}
+                  <div className="relative">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === chat.id ? null : chat.id); }}
+                      className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-md transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                    </button>
+
+                    {/* Menú flotante (Rename/Delete) */}
+                    {menuOpenId === chat.id && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); }} />
+                        <div className="absolute right-0 mt-1 w-28 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 overflow-hidden">
+                          <button 
+                            onClick={(e) => handleRename(e, chat.id, chat.title)}
+                            className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
+                          >
+                            ✏️ Rename
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id); setMenuOpenId(null); }}
+                            className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center gap-2"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))
             )}

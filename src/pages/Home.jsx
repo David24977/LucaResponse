@@ -89,64 +89,59 @@ function Home() {
     if (id === activeChatId) handleCreateNewChat();
   };
 
-  // --- NUEVA FUNCIÓN DE COPIADO INTELIGENTE ---
- const handleCopy = async (text, index) => {
-  try {
-    // 1. Buscamos el contenedor del mensaje en el DOM usando el ID único
-    // Esto selecciona exactamente lo que Luca ha renderizado en pantalla
-    const messageElement = document.getElementById(`msg-${index}`);
-    
-    if (!messageElement) {
-      // Si por algo no lo encuentra, hacemos el copy básico
-      await navigator.clipboard.writeText(text);
-      return;
+  // --- NUEVA FUNCIÓN PARA RENOMBRAR ---
+  const handleRenameChat = (id, newTitle) => {
+    const updated = chatService.renameChat(id, newTitle);
+    setAllChats(updated);
+  };
+
+  const handleCopy = async (text, index) => {
+    try {
+      const messageElement = document.getElementById(`msg-${index}`);
+      if (!messageElement) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(messageElement);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand('copy');
+      selection.removeAllRanges();
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      navigator.clipboard.writeText(text);
     }
-
-    // 2. Usamos la API moderna de Selección para "marcar" el texto invisiblemente
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(messageElement);
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    // 3. Ejecutamos el comando de copia del navegador
-    // Esto copia tanto el HTML (para Word) como el Texto Plano (para Bloc de notas)
-    // exactamente igual que si el usuario lo hubiera seleccionado con el ratón.
-    document.execCommand('copy');
-
-    // 4. Limpiamos la selección para que el usuario no vea nada azul
-    selection.removeAllRanges();
-
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  } catch {
-    navigator.clipboard.writeText(text);
-  }
-};
+  };
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-950 overflow-hidden relative">
+    <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-950 overflow-hidden relative text-gray-900 dark:text-gray-100">
       <Sidebar 
-        allChats={allChats} activeChatId={activeChatId}
-        onChatSelect={handleSelectChat} onDeleteChat={handleDeleteChat}
-        isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        allChats={allChats} 
+        activeChatId={activeChatId}
+        onChatSelect={handleSelectChat} 
+        onDeleteChat={handleDeleteChat}
+        onRenameChat={handleRenameChat} // Pass the rename function
+        isOpen={isSidebarOpen} 
+        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
       <div className={`flex-1 flex flex-col min-w-0 h-full relative transition-all duration-300 ${isSidebarOpen ? "md:ml-72" : "ml-0"}`}>
-        
         <header className="sticky top-0 h-14 flex items-center justify-between px-4 border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur-md dark:border-gray-800 z-50 shrink-0">
           <div className="flex items-center gap-2">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
-            <h1 className="text-lg font-bold dark:text-white tracking-tighter italic">Luca<span className="text-blue-600 font-black not-italic">Response</span></h1>
+            <h1 className="text-lg font-bold tracking-tighter italic">Luca<span className="text-blue-600 font-black not-italic">Response</span></h1>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => window.location.reload()} className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
             </button>
-            <button onClick={handleCreateNewChat} className="bg-red-600 text-white text-[10px] font-black py-1.5 px-3 rounded-lg shadow-md hover:bg-blue-700 uppercase tracking-tighter">New Chat</button>
-            <button onClick={() => setDarkMode(!darkMode)} className="text-lg">{darkMode ? "☀️" : "🌙"}</button>
+            <button onClick={handleCreateNewChat} className="bg-red-600 text-white text-[10px] font-black py-1.5 px-3 rounded-lg shadow-md hover:bg-red-700 uppercase tracking-tighter transition-colors">New Chat</button>
+            <button onClick={() => setDarkMode(!darkMode)} className="text-lg p-1 hover:scale-110 transition-transform">{darkMode ? "☀️" : "🌙"}</button>
           </div>
         </header>
 
@@ -179,7 +174,7 @@ function Home() {
                     {msg.role === "ai" && (
                       <button 
                         onClick={() => handleCopy(msg.text, index)} 
-                        className="text-[9px] font-bold text-gray-400 hover:text-blue-500 ml-1 uppercase"
+                        className="text-[9px] font-bold text-gray-400 hover:text-blue-500 ml-1 uppercase transition-colors"
                       >
                         {copiedIndex === index ? "Copiado" : "Copiar"}
                       </button>

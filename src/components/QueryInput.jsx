@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
+import { startListening } from "../utils/speechRecognition"; 
 
 function QueryInput({ onQuery, disabled = false }) {
   const [query, setQuery] = useState("");
+  const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef(null);
 
   // Auto-ajustar la altura del textarea conforme se escribe
@@ -22,7 +24,6 @@ function QueryInput({ onQuery, disabled = false }) {
     setQuery("");
   };
 
-  // Enviar con "Enter" (pero permitir salto de línea con Shift+Enter)
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 768) {
       e.preventDefault();
@@ -30,10 +31,27 @@ function QueryInput({ onQuery, disabled = false }) {
     }
   };
 
+  // Función para manejar el dictado
+  const handleVoiceClick = () => {
+    if (isListening) return; // Evitar múltiples instancias
+
+    startListening(
+      (text) => {
+        // Concatenamos el dictado al texto existente
+        setQuery((prev) => (prev ? `${prev} ${text}` : text));
+      },
+      (status) => setIsListening(status)
+    );
+  };
+
   return (
-    <form 
-      onSubmit={handleSubmit} 
-      className="relative flex items-end w-full gap-2 bg-white dark:bg-gray-900 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg transition-all focus-within:border-blue-500/50"
+    <form
+      onSubmit={handleSubmit}
+      className={`relative flex items-end w-full gap-2 bg-white dark:bg-gray-900 p-2 rounded-2xl border transition-all duration-300 shadow-lg ${
+        isListening 
+          ? "border-red-500 ring-2 ring-red-500/10" 
+          : "border-gray-200 dark:border-gray-700 focus-within:border-blue-500/50"
+      }`}
     >
       <textarea
         ref={textareaRef}
@@ -41,31 +59,60 @@ function QueryInput({ onQuery, disabled = false }) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Pregunta a Luca..."
+        placeholder={isListening ? "Luca está escuchando..." : "Pregunta a Luca..."}
         disabled={disabled}
         maxLength={4000}
         className="flex-1 max-h-40 min-h-[44px] resize-none rounded-xl bg-transparent px-3 py-2.5 text-gray-800 dark:text-white outline-none placeholder:text-gray-400 disabled:opacity-50 text-base overflow-x-hidden overflow-y-auto"
-        style={{ lineHeight: '1.5' }}
+        style={{ lineHeight: "1.5" }}
       />
-      
-      <button
-        type="submit"
-        disabled={disabled || !query.trim()}
-        className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${
-          query.trim() && !disabled
-            ? "bg-blue-600 text-white scale-100 shadow-md"
-            : "bg-gray-100 dark:bg-gray-800 text-gray-400 scale-95 opacity-50"
-        }`}
-        aria-label="Send message"
-      >
-        <svg 
-          viewBox="0 0 24 24" 
-          fill="currentColor" 
-          className="w-5 h-5 rotate-45"
+
+      <div className="flex items-center gap-1 mb-0.5">
+        {/* Botón de Micrófono */}
+        <button
+          type="button"
+          onClick={handleVoiceClick}
+          disabled={disabled}
+          className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${
+            isListening
+              ? "bg-red-50 text-red-600 dark:bg-red-900/20 animate-pulse"
+              : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"
+          }`}
+          aria-label="Dictar mensaje"
         >
-          <path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a.993.993 0 00-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z" />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+
+        {/* Botón de Enviar */}
+        <button
+          type="submit"
+          disabled={disabled || !query.trim()}
+          className={`flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ${
+            query.trim() && !disabled
+              ? "bg-blue-600 text-white scale-100 shadow-md"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-400 scale-95 opacity-50"
+          }`}
+          aria-label="Send message"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 rotate-45">
+            <path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a.993.993 0 00-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z" />
+          </svg>
+        </button>
+      </div>
     </form>
   );
 }

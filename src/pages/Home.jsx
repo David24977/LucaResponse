@@ -89,7 +89,6 @@ function Home() {
     if (id === activeChatId) handleCreateNewChat();
   };
 
-  // --- NUEVA FUNCIÓN PARA RENOMBRAR ---
   const handleRenameChat = (id, newTitle) => {
     const updated = chatService.renameChat(id, newTitle);
     setAllChats(updated);
@@ -123,7 +122,7 @@ function Home() {
         activeChatId={activeChatId}
         onChatSelect={handleSelectChat} 
         onDeleteChat={handleDeleteChat}
-        onRenameChat={handleRenameChat} // Pass the rename function
+        onRenameChat={handleRenameChat}
         isOpen={isSidebarOpen} 
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
@@ -164,7 +163,12 @@ function Home() {
                     </div>
                   )}
                   <div className="flex flex-col gap-1 max-w-[85%]">
-                    <div id={`msg-${index}`} className={`px-3 py-2.5 rounded-2xl text-[13px] shadow-sm leading-relaxed ${msg.role === "user" ? "bg-blue-600 text-white rounded-br-none" : "bg-white dark:bg-gray-800 dark:text-gray-100 border dark:border-gray-700 rounded-bl-none"}`}>
+                    {/* AQUÍ ESTÁ EL CAMBIO: Se añade 'prose dark:prose-invert' al contenedor de la IA */}
+                    <div id={`msg-${index}`} className={`px-3 py-2.5 rounded-2xl text-[13px] shadow-sm leading-relaxed ${
+                      msg.role === "user" 
+                        ? "bg-blue-600 text-white rounded-br-none" 
+                        : "bg-white dark:bg-gray-800 dark:text-gray-100 border dark:border-gray-700 rounded-bl-none prose dark:prose-invert"
+                    }`}>
                       {msg.role === "ai" && animatingMsgId === msg.id ? (
                         <SmartTypingText text={msg.text} speed={6} onComplete={() => setAnimatingMsgId(null)} />
                       ) : (

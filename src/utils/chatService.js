@@ -14,16 +14,25 @@ export const chatService = {
 
     // Título automático desde la PREGUNTA del usuario
     if (!title && messages.length > 0) {
-      const userText = messages[0].text || "";
-      const clean = userText
-        .replace(/[¿?¡!]/g, "")
-        .replace(/^(hola|luca)\s+/i, "")
-        .trim();
-      
-      title = clean.length > 25 
-        ? clean.substring(0, 25) + "..." 
-        : clean || "Nueva conversación";
-    }
+  const userText = messages[0].text || "";
+  
+  const clean = userText
+    // 1. Quitamos signos de apertura y cierre
+    .replace(/[¿?¡!]/g, "")
+    // 2. Quitamos "Hola Luca" o "Hola, Luca" al principio (insensible a mayúsculas)
+    // El [,\s]* sirve para quitar la coma y el espacio si los hay
+    .replace(/^hola[,\s]*luca[,\s]*/i, "")
+    // 3. Por si acaso solo dice "Hola" o solo "Luca"
+    .replace(/^(hola|luca)[,\s]*/i, "")
+    .trim();
+  
+  // 4. Capitalizamos la primera letra
+  const formatted = clean.charAt(0).toUpperCase() + clean.slice(1);
+
+  title = formatted.length > 25 
+    ? formatted.substring(0, 25).trim() + "..." 
+    : formatted || "Nueva conversación";
+}
 
     chats[chatId] = {
       id: chatId,

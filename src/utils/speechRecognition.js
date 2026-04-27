@@ -1,4 +1,9 @@
-export const startListening = (onResult, onStatusChange, onError) => {
+export const startListening = (
+  onResult,
+  onStatusChange,
+  onError,
+  manuallyStoppedRef
+) => {
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -9,46 +14,57 @@ export const startListening = (onResult, onStatusChange, onError) => {
 
   const recognition = new SpeechRecognition();
 
-  const userLangs = navigator.languages || [navigator.language];
+  // --- LÓGICA DE IDIOMA SIN INVENTOS ---
+  // Priorizamos el idioma del documento (HTML lang) porque es el más fiable.
+  // Si no está definido, buscamos el primero del usuario. Fallback: Castellano.
+  const siteLang = document.documentElement.lang;
+  const userPrimaryLang = navigator.language || (navigator.languages && navigator.languages[0]);
+  
+  recognition.lang = siteLang || userPrimaryLang || "es-ES";
 
-// 1. Detectem què tens a la llista
-const tieneValencia = userLangs.some(l => l.startsWith('ca') || l.startsWith('va'));
-const tieneCastellano = userLangs.some(l => l.startsWith('es'));
+  // --- CONFIGURACIÓN PARA FLUIDEZ ---
+  recognition.interimResults = false; // Solo resultados finales para evitar saltos
+  recognition.continuous = false;     // Se para al terminar de hablar (más estable)
 
-// 2. Lògica de PRIORITAT (De la terreta cap a fora)
-if (tieneValencia) {
-    // Si està el valencià a la llista, Luca t'escolta en la teua llengua
-    recognition.lang = 'ca-ES'; 
-} else if (tieneCastellano) {
-    // Si no, t'escolta en castellà 
-    recognition.lang = 'es-ES';
-} else {
-    // I si no hi ha res de l'anterior, gastem l'anglés
-    recognition.lang = userLangs[0] || 'en-US';
-}
-
-  recognition.interimResults = false;
-  recognition.continuous = false;
-
-  recognition.onstart = () => onStatusChange(true);
+  recognition.onstart = () => {
+    // Si el usuario ya pulsó Enter muy rápido, cancelamos
+    if (manuallyStoppedRef.current) {
+      recognition.abort(); 
+      return;
+    }
+    onStatusChange(true);
+  };
 
   recognition.onresult = (event) => {
+    // Obtenemos la transcripción de forma segura
     const transcript = event.results[0][0].transcript;
-    onResult(transcript);
+    if (transcript) {
+      onResult(transcript);
+    }
   };
 
   recognition.onerror = (event) => {
-    const errorMessages = {
-      "no-speech": "No te he oído bien, ¿puedes repetirlo?",
-      "audio-capture": "No encuentro tu micrófono.",
-      "not-allowed": "Permiso de micrófono denegado.",
-    };
-    onError(errorMessages[event.error] || "Algo ha fallado con el micro.");
+    // Ignoramos el error "aborted" porque es el que lanzamos nosotros al enviar
+    if (event.error === 'aborted') return;
+    
+    console.error("Error micro:", event.error);
+    onError(event.error);
     onStatusChange(false);
   };
 
-  recognition.onend = () => onStatusChange(false);
+  recognition.onend = () => {
+    // Limpieza de estados
+    onStatusChange(false);
+    // IMPORTANTE: Reseteamos el flag de parada manual para la siguiente escucha
+    manuallyStoppedRef.current = false;
+  };
 
-  recognition.start();
+  try {
+    recognition.start();
+  } catch (e) {
+    console.error("Error al iniciar recognition:", e);
+    return null;
+  }
+
   return recognition;
 };

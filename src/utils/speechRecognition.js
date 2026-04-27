@@ -14,20 +14,19 @@ export const startListening = (
 
   const recognition = new SpeechRecognition();
 
-  // --- LÓGICA DE IDIOMA SIN INVENTOS ---
-  // Priorizamos el idioma del documento (HTML lang) porque es el más fiable.
-  // Si no está definido, buscamos el primero del usuario. Fallback: Castellano.
+  // --- IDIOMA ROBUSTO ---
+  // Priorizamos el idioma de la web (<html lang="ca">), si no, el del sistema.
   const siteLang = document.documentElement.lang;
   const userPrimaryLang = navigator.language || (navigator.languages && navigator.languages[0]);
-  
   recognition.lang = siteLang || userPrimaryLang || "es-ES";
 
-  // --- CONFIGURACIÓN PARA FLUIDEZ ---
-  recognition.interimResults = false; // Solo resultados finales para evitar saltos
-  recognition.continuous = false;     // Se para al terminar de hablar (más estable)
+  // --- CONFIGURACIÓN DE ESTABILIDAD ---
+  recognition.interimResults = false; 
+  recognition.continuous = false;     
+  recognition.maxAlternatives = 1;    // Menos carga para el motor de Edge/Windows
 
   recognition.onstart = () => {
-    // Si el usuario ya pulsó Enter muy rápido, cancelamos
+    // Si se ha cancelado justo al empezar (doble clic o Enter rápido)
     if (manuallyStoppedRef.current) {
       recognition.abort(); 
       return;
@@ -36,7 +35,6 @@ export const startListening = (
   };
 
   recognition.onresult = (event) => {
-    // Obtenemos la transcripción de forma segura
     const transcript = event.results[0][0].transcript;
     if (transcript) {
       onResult(transcript);
@@ -44,25 +42,33 @@ export const startListening = (
   };
 
   recognition.onerror = (event) => {
-    // Ignoramos el error "aborted" porque es el que lanzamos nosotros al enviar
+    // 1. Ignoramos si nosotros mismos hemos abortado el micro (al enviar con Enter)
     if (event.error === 'aborted') return;
     
+    // 2. Filtro especial para Edge/Safari: 
+    // Si el micro se cierra por silencio ('no-speech'), no mostramos error molesto.
+    if (event.error === 'no-speech') {
+      console.warn("Reconocimiento finalizado: no se detectó voz.");
+      onStatusChange(false);
+      return; 
+    }
+    
+    // 3. Otros errores (permisos, red, etc.)
     console.error("Error micro:", event.error);
     onError(event.error);
     onStatusChange(false);
   };
 
   recognition.onend = () => {
-    // Limpieza de estados
     onStatusChange(false);
-    // IMPORTANTE: Reseteamos el flag de parada manual para la siguiente escucha
+    // Resetear el flag para la siguiente vez que el usuario quiera hablar
     manuallyStoppedRef.current = false;
   };
 
   try {
     recognition.start();
   } catch (e) {
-    console.error("Error al iniciar recognition:", e);
+    console.error("Error crítico al iniciar micro:", e);
     return null;
   }
 

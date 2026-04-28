@@ -57,12 +57,13 @@ function QueryInput({ onQuery, disabled = false }) {
   };
 
   // CLICK MICRO
-  const handleVoiceClick = () => {
+ const handleVoiceClick = () => {
     if (disabled) return;
 
-    // Toggle OFF
+    // Toggle OFF (Si ya está escuchando, lo paramos)
     if (recognitionRef.current) {
-      manuallyStoppedRef.current = true;
+      // AQUÍ: Debe ser TRUE porque lo estás parando tú a mano
+      manuallyStoppedRef.current = true; 
 
       try {
         recognitionRef.current.stop();
@@ -76,6 +77,8 @@ function QueryInput({ onQuery, disabled = false }) {
       return;
     }
 
+    // Toggle ON (Si estaba apagado, lo encendemos)
+    // AQUÍ: Debe ser FALSE para que el helper permita el inicio
     manuallyStoppedRef.current = false;
 
     setToast({ msg: "Luca te está escuchando...", type: "info" });
@@ -84,8 +87,6 @@ function QueryInput({ onQuery, disabled = false }) {
       (text) => {
         setQuery((prev) => (prev ? `${prev} ${text}` : text));
         setToast({ msg: "", type: "" });
-
-        // clave: recuperar foco
         textareaRef.current?.focus();
       },
       (status) => setIsListening(status),
@@ -100,7 +101,6 @@ function QueryInput({ onQuery, disabled = false }) {
 
     recognitionRef.current = instance;
   };
-
   return (
     <div className="relative w-full">
       {/* Toast */}

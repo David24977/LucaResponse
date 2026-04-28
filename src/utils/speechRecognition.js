@@ -2,7 +2,7 @@ export const startListening = (
   onResult,
   onStatusChange,
   onError,
-  manuallyStoppedRef
+  manuallyStoppedRef,
 ) => {
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -15,20 +15,29 @@ export const startListening = (
   const recognition = new SpeechRecognition();
 
   // --- IDIOMA ROBUSTO ---
-  // Priorizamos el idioma de la web (<html lang="ca">), si no, el del sistema.
+  // Priorizamos el idioma de la web, si no, el del sistema.
   const siteLang = document.documentElement.lang;
-  const userPrimaryLang = navigator.language || (navigator.languages && navigator.languages[0]);
-  recognition.lang = siteLang || userPrimaryLang || "es-ES";
+  const userPrimaryLang =
+    navigator.language || (navigator.languages && navigator.languages[0]);
+  let finalLang = siteLang || userPrimaryLang || "es-ES";
+
+  if (finalLang.startsWith("ca") || finalLang.startsWith("va")) {
+    finalLang = "ca-ES";
+  } else if (finalLang.startsWith("es")) {
+    finalLang = "es-ES";
+  }
+
+  recognition.lang = finalLang;
 
   // --- CONFIGURACIÓN DE ESTABILIDAD ---
-  recognition.interimResults = false; 
-  recognition.continuous = false;     
-  recognition.maxAlternatives = 1;    // Menos carga para el motor de Edge/Windows
+  recognition.interimResults = false;
+  recognition.continuous = false;
+  recognition.maxAlternatives = 1; // Menos carga para el motor de Edge/Windows
 
   recognition.onstart = () => {
     // Si se ha cancelado justo al empezar (doble clic o Enter rápido)
     if (manuallyStoppedRef.current) {
-      recognition.abort(); 
+      recognition.abort();
       return;
     }
     onStatusChange(true);
@@ -43,16 +52,16 @@ export const startListening = (
 
   recognition.onerror = (event) => {
     // 1. Ignoramos si nosotros mismos hemos abortado el micro (al enviar con Enter)
-    if (event.error === 'aborted') return;
-    
-    // 2. Filtro especial para Edge/Safari: 
+    if (event.error === "aborted") return;
+
+    // 2. Filtro especial para Edge/Safari:
     // Si el micro se cierra por silencio ('no-speech'), no mostramos error molesto.
-    if (event.error === 'no-speech') {
+    if (event.error === "no-speech") {
       console.warn("Reconocimiento finalizado: no se detectó voz.");
       onStatusChange(false);
-      return; 
+      return;
     }
-    
+
     // 3. Otros errores (permisos, red, etc.)
     console.error("Error micro:", event.error);
     onError(event.error);

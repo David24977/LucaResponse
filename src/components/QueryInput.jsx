@@ -10,7 +10,7 @@ function QueryInput({ onQuery, disabled = false }) {
   const recognitionRef = useRef(null);
   const manuallyStoppedRef = useRef(false);
 
-  // Auto resize
+  // Auto resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -23,7 +23,6 @@ function QueryInput({ onQuery, disabled = false }) {
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
 
-    // Parar micro SIEMPRE
     manuallyStoppedRef.current = true;
 
     if (recognitionRef.current) {
@@ -36,8 +35,6 @@ function QueryInput({ onQuery, disabled = false }) {
     }
 
     setIsListening(false);
-
-    // quitar foco para evitar bugs con enter
     textareaRef.current?.blur();
 
     const cleanQuery = query.trim();
@@ -48,7 +45,7 @@ function QueryInput({ onQuery, disabled = false }) {
     setToast({ msg: "", type: "" });
   };
 
-  // ENTER
+  // ENTER (Solo en desktop)
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 768) {
       e.preventDefault();
@@ -57,31 +54,25 @@ function QueryInput({ onQuery, disabled = false }) {
   };
 
   // CLICK MICRO
- const handleVoiceClick = () => {
+  const handleVoiceClick = () => {
     if (disabled) return;
 
-    // Toggle OFF (Si ya está escuchando, lo paramos)
+    // Toggle OFF (Si ya está escuchando)
     if (recognitionRef.current) {
-      // AQUÍ: Debe ser TRUE porque lo estás parando tú a mano
-      manuallyStoppedRef.current = true; 
-
+      manuallyStoppedRef.current = true;
       try {
         recognitionRef.current.stop();
       } catch {
-        // ignore
+        /* ignore */
       }
-
       recognitionRef.current = null;
       setIsListening(false);
       setToast({ msg: "", type: "" });
       return;
     }
 
-    // Toggle ON (Si estaba apagado, lo encendemos)
-    // AQUÍ: Debe ser FALSE para que el helper permita el inicio
+    // Toggle ON
     manuallyStoppedRef.current = false;
-
-    setToast({ msg: "Luca te está escuchando...", type: "info" });
 
     const instance = startListening(
       (text) => {
@@ -89,31 +80,44 @@ function QueryInput({ onQuery, disabled = false }) {
         setToast({ msg: "", type: "" });
         textareaRef.current?.focus();
       },
-      (status) => setIsListening(status),
+      (status) => {
+        setIsListening(status);
+      },
       (error) => {
-        console.error("Error micro:", error);
         setIsListening(false);
-        setToast({ msg: "Error de micro", type: "error" });
-        setTimeout(() => setToast({ msg: "", type: "" }), 3000);
+        if (error === "no-speech") {
+          setToast({ msg: "No se ha detectado voz", type: "error" });
+        } else {
+          setToast({ msg: "Error de micro", type: "error" });
+        }
+
+        setTimeout(() => {
+          setToast((current) => (current.type === "error" ? { msg: "", type: "" } : current));
+        }, 3000);
       },
       manuallyStoppedRef
     );
 
     recognitionRef.current = instance;
   };
+
+  // Mensaje activo (derivado en tiempo de render)
+  const activeToastMsg = isListening ? "Luca te está escuchando..." : toast.msg;
+  const isInfoToast = isListening || toast.type === "info";
+
   return (
     <div className="relative w-full">
-      {/* Toast */}
-      {toast.msg && (
+      {/* Toast con animación */}
+      {activeToastMsg && (
         <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div
             className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black shadow-xl border backdrop-blur-sm ${
-              toast.type === "info"
+              isInfoToast
                 ? "bg-blue-600/90 border-blue-400 text-white"
                 : "bg-gray-900/90 border-gray-700 text-gray-200"
             }`}
           >
-            <span className="uppercase tracking-widest">{toast.msg}</span>
+            <span className="uppercase tracking-widest">{activeToastMsg}</span>
           </div>
         </div>
       )}
@@ -142,7 +146,6 @@ function QueryInput({ onQuery, disabled = false }) {
         />
 
         <div className="flex items-center gap-1 mb-0.5">
-          {/* ICONO */}
           <button
             type="button"
             onClick={handleVoiceClick}
